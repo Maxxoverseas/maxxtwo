@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { products } from "../Components/data.js";
 
 const ALLproducts = () => {
-  // State
+  // State (same as before)
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState([]);
   const [selectedCurrency, setSelectedCurrency] = useState("INR");
@@ -13,15 +13,15 @@ const ALLproducts = () => {
   const [lastUpdated, setLastUpdated] = useState("");
   const [percentageInput, setPercentageInput] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [directQuantity, setDirectQuantity] = useState("");
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [productsToShow, setProductsToShow] = useState(50);
   const [searchField, setSearchField] = useState("all");
   const [selectedBrand, setSelectedBrand] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchType, setSearchType] = useState("product");
+  const [conversionError, setConversionError] = useState("");
 
-  // Extract unique brands and categories from products
+  // Extract unique brands and categories from products (same as before)
   const { brands, categories } = useMemo(() => {
     const brandSet = new Set();
     const categorySet = new Set();
@@ -37,18 +37,13 @@ const ALLproducts = () => {
     };
   }, []);
 
-  // Utility function to normalize text
+  // Utility function to normalize text - FIXED
   const normalizeText = (text) => {
     if (!text) return "";
-    return text
-      .toString()
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, " ")
-      .replace(/\s+/g, "");
+    return text.toString().toLowerCase().trim().replace(/\s+/g, " "); // Single space only
   };
 
-  // Clean products data with product name
+  // Clean products data with product name (same as before)
   const cleanedProducts = useMemo(() => {
     return products.map((product) => {
       const brandName = product.brand || "Unknown Brand";
@@ -84,187 +79,235 @@ const ALLproducts = () => {
     });
   }, []);
 
-  // Fetch real-time currency rates
+  // Fetch real-time currency rates from ExchangeRate-API - FIXED
   const fetchCurrencyRates = useCallback(async () => {
     setLoadingRates(true);
+    setConversionError("");
+
     try {
-      const APIs = [
-        "https://api.exchangerate-api.com/v4/latest/INR",
-        "https://api.frankfurter.app/latest?from=INR",
-        "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/inr.json",
-      ];
+      const API_KEY = "d58db6ef54010d3516d7d9db";
+      const response = await fetch(
+        `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/INR`
+      );
 
-      let ratesData = null;
-
-      for (const apiUrl of APIs) {
-        try {
-          const response = await fetch(apiUrl);
-          if (response.ok) {
-            ratesData = await response.json();
-            break;
-          }
-        } catch (error) {
-          continue;
-        }
+      if (!response.ok) {
+        throw new Error("Failed to fetch currency rates");
       }
 
-      if (!ratesData) {
-        throw new Error("All currency APIs failed");
+      const data = await response.json();
+
+      if (data.result !== "success") {
+        throw new Error("API returned error");
       }
 
-      let rates = {};
-      if (ratesData.rates) {
-        rates = ratesData.rates;
-      } else if (ratesData.conversion_rates) {
-        rates = ratesData.conversion_rates;
-      } else if (ratesData.inr) {
-        rates = ratesData.inr;
-      }
+      // Set current date and time
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 
+      // Use data from API response
       const currencyRatesMap = {
         INR: {
           rate: 1,
           symbol: "₹",
           name: "Indian Rupee",
           realTimeRate: 1,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         USD: {
-          rate: rates.USD || rates.usd || 0.012,
+          rate: data.conversion_rates?.USD || 0.012,
           symbol: "$",
           name: "US Dollar",
-          realTimeRate: rates.USD || rates.usd || 0.012,
+          realTimeRate: data.conversion_rates?.USD || 0.012,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         EUR: {
-          rate: rates.EUR || rates.eur || 0.011,
+          rate: data.conversion_rates?.EUR || 0.011,
           symbol: "€",
           name: "Euro",
-          realTimeRate: rates.EUR || rates.eur || 0.011,
+          realTimeRate: data.conversion_rates?.EUR || 0.011,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         GBP: {
-          rate: rates.GBP || rates.gbp || 0.0095,
+          rate: data.conversion_rates?.GBP || 0.0095,
           symbol: "£",
           name: "British Pound",
-          realTimeRate: rates.GBP || rates.gbp || 0.0095,
+          realTimeRate: data.conversion_rates?.GBP || 0.0095,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         JPY: {
-          rate: rates.JPY || rates.jpy || 1.78,
+          rate: data.conversion_rates?.JPY || 1.78,
           symbol: "¥",
           name: "Japanese Yen",
-          realTimeRate: rates.JPY || rates.jpy || 1.78,
+          realTimeRate: data.conversion_rates?.JPY || 1.78,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         AUD: {
-          rate: rates.AUD || rates.aud || 0.018,
+          rate: data.conversion_rates?.AUD || 0.018,
           symbol: "A$",
           name: "Australian Dollar",
-          realTimeRate: rates.AUD || rates.aud || 0.018,
+          realTimeRate: data.conversion_rates?.AUD || 0.018,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         CAD: {
-          rate: rates.CAD || rates.cad || 0.016,
+          rate: data.conversion_rates?.CAD || 0.016,
           symbol: "C$",
           name: "Canadian Dollar",
-          realTimeRate: rates.CAD || rates.cad || 0.016,
+          realTimeRate: data.conversion_rates?.CAD || 0.016,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         CHF: {
-          rate: rates.CHF || rates.chf || 0.011,
+          rate: data.conversion_rates?.CHF || 0.011,
           symbol: "CHF",
           name: "Swiss Franc",
-          realTimeRate: rates.CHF || rates.chf || 0.011,
+          realTimeRate: data.conversion_rates?.CHF || 0.011,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         CNY: {
-          rate: rates.CNY || rates.cny || 0.087,
+          rate: data.conversion_rates?.CNY || 0.087,
           symbol: "¥",
           name: "Chinese Yuan",
-          realTimeRate: rates.CNY || rates.cny || 0.087,
+          realTimeRate: data.conversion_rates?.CNY || 0.087,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         AED: {
-          rate: rates.AED || rates.aed || 0.044,
+          rate: data.conversion_rates?.AED || 0.044,
           symbol: "AED",
           name: "UAE Dirham",
-          realTimeRate: rates.AED || rates.aed || 0.044,
+          realTimeRate: data.conversion_rates?.AED || 0.044,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         SAR: {
-          rate: rates.SAR || rates.sar || 0.045,
+          rate: data.conversion_rates?.SAR || 0.045,
           symbol: "SAR",
           name: "Saudi Riyal",
-          realTimeRate: rates.SAR || rates.sar || 0.045,
+          realTimeRate: data.conversion_rates?.SAR || 0.045,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         SGD: {
-          rate: rates.SGD || rates.sgd || 0.016,
+          rate: data.conversion_rates?.SGD || 0.016,
           symbol: "S$",
           name: "Singapore Dollar",
-          realTimeRate: rates.SGD || rates.sgd || 0.016,
+          realTimeRate: data.conversion_rates?.SGD || 0.016,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
       };
 
       setCurrencyRates(currencyRatesMap);
-      setLastUpdated(new Date().toLocaleTimeString());
+      setLastUpdated(`${dateStr}, ${timeStr} IST`);
     } catch (error) {
+      console.error("Currency fetch error:", error);
+      setConversionError(
+        "Using fallback rates - connect to internet for real-time rates"
+      );
+
+      // Fallback rates with timestamp
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
       const fallbackRates = {
-        INR: { rate: 1, symbol: "₹", name: "Indian Rupee", realTimeRate: 1 },
+        INR: {
+          rate: 1,
+          symbol: "₹",
+          name: "Indian Rupee",
+          realTimeRate: 1,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
+        },
         USD: {
           rate: 0.012,
           symbol: "$",
           name: "US Dollar",
           realTimeRate: 0.012,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
-        EUR: { rate: 0.011, symbol: "€", name: "Euro", realTimeRate: 0.011 },
+        EUR: {
+          rate: 0.011,
+          symbol: "€",
+          name: "Euro",
+          realTimeRate: 0.011,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
+        },
         GBP: {
           rate: 0.0095,
           symbol: "£",
           name: "British Pound",
           realTimeRate: 0.0095,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         JPY: {
           rate: 1.78,
           symbol: "¥",
           name: "Japanese Yen",
           realTimeRate: 1.78,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         AUD: {
           rate: 0.018,
           symbol: "A$",
           name: "Australian Dollar",
           realTimeRate: 0.018,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         CAD: {
           rate: 0.016,
           symbol: "C$",
           name: "Canadian Dollar",
           realTimeRate: 0.016,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         CHF: {
           rate: 0.011,
           symbol: "CHF",
           name: "Swiss Franc",
           realTimeRate: 0.011,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         CNY: {
           rate: 0.087,
           symbol: "¥",
           name: "Chinese Yuan",
           realTimeRate: 0.087,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         AED: {
           rate: 0.044,
           symbol: "AED",
           name: "UAE Dirham",
           realTimeRate: 0.044,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         SAR: {
           rate: 0.045,
           symbol: "SAR",
           name: "Saudi Riyal",
           realTimeRate: 0.045,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
         SGD: {
           rate: 0.016,
           symbol: "S$",
           name: "Singapore Dollar",
           realTimeRate: 0.016,
+          lastUpdated: `${dateStr}, ${timeStr} IST`,
         },
       };
       setCurrencyRates(fallbackRates);
-      setLastUpdated("Fallback rates - " + new Date().toLocaleTimeString());
+      setLastUpdated(`Fallback rates - ${dateStr}, ${timeStr} IST`);
     } finally {
       setLoadingRates(false);
     }
@@ -272,11 +315,11 @@ const ALLproducts = () => {
 
   useEffect(() => {
     fetchCurrencyRates();
-    const interval = setInterval(fetchCurrencyRates, 120000);
+    const interval = setInterval(fetchCurrencyRates, 300000); // Update every 5 minutes
     return () => clearInterval(interval);
   }, [fetchCurrencyRates]);
 
-  // Enhanced filtered products
+  // Enhanced filtered products (same as before)
   const filteredProducts = useMemo(() => {
     let filtered = cleanedProducts;
 
@@ -374,9 +417,16 @@ const ALLproducts = () => {
     const currentCurrency = currencyRates[selectedCurrency];
     const conversionRate = currentCurrency ? currentCurrency.realTimeRate : 1;
 
-    const subtotalConverted = subtotalINR * conversionRate;
-    const extraAmountConverted = extraAmountINR * conversionRate;
-    const finalTotalConverted = finalTotalINR * conversionRate;
+    // Real-time conversion with proper rounding
+    const subtotalConverted = parseFloat(
+      (subtotalINR * conversionRate).toFixed(2)
+    );
+    const extraAmountConverted = parseFloat(
+      (extraAmountINR * conversionRate).toFixed(2)
+    );
+    const finalTotalConverted = parseFloat(
+      (finalTotalINR * conversionRate).toFixed(2)
+    );
 
     return {
       baseTotalINR: subtotalINR,
@@ -399,8 +449,8 @@ const ALLproducts = () => {
     conversionRate,
   } = calculateTotals();
 
-  // Add to cart with direct quantity
-  const addToCartWithQuantity = useCallback((product, quantity = 1) => {
+  // Add to cart - FIXED duplicate property
+  const addToCart = useCallback((product) => {
     const safeProduct = {
       id: product.id,
       brand: product.brand,
@@ -408,11 +458,10 @@ const ALLproducts = () => {
       composition: product.composition,
       packing: product.packing,
       potency: product.potency,
-      quantity: product.quantity,
       category: product.category,
       price: product.price,
       count: product.count,
-      quantity: parseInt(quantity) || 1,
+      quantity: 1, // Only one quantity property
     };
 
     setCart((prevCart) => {
@@ -420,18 +469,16 @@ const ALLproducts = () => {
       if (existingItem) {
         return prevCart.map((item) =>
           item.id === safeProduct.id
-            ? { ...item, quantity: item.quantity + safeProduct.quantity }
+            ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
         return [...prevCart, safeProduct];
       }
     });
-
-    setDirectQuantity("");
   }, []);
 
-  // Update quantity
+  // Update quantity in cart only
   const updateQuantity = useCallback((id, change) => {
     setCart((prevCart) =>
       prevCart
@@ -484,26 +531,56 @@ const ALLproducts = () => {
     setCart([]);
     setCustomPercentage(0);
     setPercentageInput("");
-    setDirectQuantity("");
   }, []);
 
-  // Format currency with real-time rates
+  // Format currency with real-time rates - FIXED
   const formatCurrency = useCallback(
-    (amount) => {
+    (amount, isProductDisplay = false) => {
       const currency = currencyRates[selectedCurrency];
       if (!currency) {
         return `₹ ${amount.toFixed(2)}`;
       }
 
-      const formattedAmount = amount * currency.realTimeRate;
+      // Calculate converted amount
+      const convertedAmount = amount * currency.realTimeRate;
 
-      if (formattedAmount < 1 && formattedAmount > 0) {
-        return `${currency.symbol} ${formattedAmount.toFixed(4)}`;
+      // Format based on amount
+      if (convertedAmount < 1 && convertedAmount > 0) {
+        return `${currency.symbol} ${convertedAmount.toFixed(4)}`;
       }
 
-      return `${currency.symbol} ${formattedAmount.toFixed(2)}`;
+      return `${currency.symbol} ${convertedAmount.toFixed(2)}`;
     },
     [selectedCurrency, currencyRates]
+  );
+
+  // Format product price - Shows both INR and selected currency - FIXED
+  const formatProductPrice = useCallback(
+    (price) => {
+      const currency = currencyRates[selectedCurrency];
+      if (!currency) {
+        return (
+          <div>
+            <p className="text-lg font-bold text-green-600">
+              ₹ {price.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500">(₹ {price.toFixed(2)} INR)</p>
+          </div>
+        );
+      }
+
+      const convertedAmount = price * currency.realTimeRate;
+
+      return (
+        <div>
+          <p className="text-lg font-bold text-green-600">
+            {currency.symbol} {convertedAmount.toFixed(2)}
+          </p>
+          <p className="text-xs text-gray-500">(₹ {price.toFixed(2)} INR)</p>
+        </div>
+      );
+    },
+    [selectedCurrency, currencyRates] // Added dependency array
   );
 
   // Get current currency
@@ -539,14 +616,6 @@ const ALLproducts = () => {
   // Close product details
   const closeProductDetails = () => {
     setSelectedProduct(null);
-  };
-
-  // Handle direct quantity input
-  const handleDirectQuantityChange = (e) => {
-    const value = e.target.value;
-    if (value === "" || /^\d*$/.test(value)) {
-      setDirectQuantity(value);
-    }
   };
 
   // Handle load more products
@@ -620,6 +689,8 @@ const ALLproducts = () => {
               className={`px-3 py-1 rounded-full ${
                 loadingRates
                   ? "bg-yellow-100 text-yellow-800"
+                  : conversionError
+                  ? "bg-orange-100 text-orange-800"
                   : "bg-green-100 text-green-800"
               }`}
             >
@@ -627,6 +698,11 @@ const ALLproducts = () => {
                 <span className="flex items-center gap-1">
                   <span className="animate-spin">⟳</span>
                   Updating rates...
+                </span>
+              ) : conversionError ? (
+                <span className="flex items-center gap-1">
+                  <span>⚠️</span>
+                  {conversionError}
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
@@ -916,10 +992,6 @@ const ALLproducts = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto custom-scrollbar">
                   {selectedBrandProducts.map((product) => {
-                    const currentCurrency = getCurrentCurrency();
-                    const productPrice =
-                      product.price * currentCurrency.realTimeRate;
-
                     return (
                       <div
                         key={product.id}
@@ -999,45 +1071,12 @@ const ALLproducts = () => {
                               </div>
                             )}
 
-                          {/* Price */}
+                          {/* Price - Now shows selected currency */}
                           <div>
                             <p className="text-xs text-red-600 font-medium">
                               PRICE:
                             </p>
-                            <p className="text-lg font-bold text-green-600">
-                              {formatCurrency(product.price)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              ₹ {product.price} (INR)
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Direct Quantity Input */}
-                        <div className="mb-2">
-                          <label className="block text-xs text-gray-600 mb-1">
-                            Direct Quantity:
-                          </label>
-                          <div className="flex gap-1">
-                            <input
-                              type="number"
-                              min="1"
-                              placeholder="Qty"
-                              value={directQuantity}
-                              onChange={handleDirectQuantityChange}
-                              className="flex-1 p-1 text-xs border border-gray-300 rounded text-center"
-                            />
-                            <button
-                              onClick={() =>
-                                addToCartWithQuantity(product, directQuantity)
-                              }
-                              disabled={
-                                !directQuantity || parseInt(directQuantity) < 1
-                              }
-                              className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 disabled:bg-gray-400"
-                            >
-                              Add
-                            </button>
+                            {formatProductPrice(product.price)}
                           </div>
                         </div>
 
@@ -1050,7 +1089,7 @@ const ALLproducts = () => {
                             View Details
                           </button>
                           <button
-                            onClick={() => addToCartWithQuantity(product, 1)}
+                            onClick={() => addToCart(product)}
                             className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-all duration-200 font-semibold text-xs"
                           >
                             Add to Cart
@@ -1111,10 +1150,6 @@ const ALLproducts = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto custom-scrollbar mb-4">
                     {productsToDisplay.map((product) => {
-                      const currentCurrency = getCurrentCurrency();
-                      const productPrice =
-                        product.price * currentCurrency.realTimeRate;
-
                       return (
                         <div
                           key={product.id}
@@ -1195,46 +1230,12 @@ const ALLproducts = () => {
                                 </div>
                               )}
 
-                            {/* Price */}
+                            {/* Price - Now shows selected currency */}
                             <div>
                               <p className="text-xs text-red-600 font-medium">
                                 PRICE:
                               </p>
-                              <p className="text-lg font-bold text-green-600">
-                                {formatCurrency(product.price)}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                ₹ {product.price} (INR)
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Direct Quantity Input */}
-                          <div className="mb-2">
-                            <label className="block text-xs text-gray-600 mb-1">
-                              Direct Quantity:
-                            </label>
-                            <div className="flex gap-1">
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="Qty"
-                                value={directQuantity}
-                                onChange={handleDirectQuantityChange}
-                                className="flex-1 p-1 text-xs border border-gray-300 rounded text-center"
-                              />
-                              <button
-                                onClick={() =>
-                                  addToCartWithQuantity(product, directQuantity)
-                                }
-                                disabled={
-                                  !directQuantity ||
-                                  parseInt(directQuantity) < 1
-                                }
-                                className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 disabled:bg-gray-400"
-                              >
-                                Add
-                              </button>
+                              {formatProductPrice(product.price)}
                             </div>
                           </div>
 
@@ -1247,7 +1248,7 @@ const ALLproducts = () => {
                               View Details
                             </button>
                             <button
-                              onClick={() => addToCartWithQuantity(product, 1)}
+                              onClick={() => addToCart(product)}
                               className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-all duration-200 font-semibold text-xs"
                             >
                               Add to Cart
@@ -1387,6 +1388,9 @@ const ALLproducts = () => {
                 <div className="text-xs text-green-600 text-center mt-1 font-medium">
                   1 INR = {conversionRate.toFixed(6)} {selectedCurrency}
                 </div>
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  Real-time exchange rate
+                </div>
               </div>
 
               {/* Cart Items */}
@@ -1412,14 +1416,16 @@ const ALLproducts = () => {
                               {item.product}
                             </p>
                             <p className="text-xs text-gray-600">
-                              {formatCurrency(item.price)} × {item.quantity}
-                            </p>
-                            <p className="text-xs text-green-600 font-bold">
-                              {formatCurrency(itemPrice * item.quantity)}
-                            </p>
-                            <p className="text-xs text-blue-600">
                               {item.brand}
                             </p>
+                            <div className="flex items-baseline gap-2 mt-1">
+                              <p className="text-xs text-gray-500 line-through">
+                                ₹ {item.price} × {item.quantity}
+                              </p>
+                              <p className="text-xs text-green-600 font-bold">
+                                {formatCurrency(itemPrice * item.quantity)}
+                              </p>
+                            </div>
                           </div>
 
                           {/* Quantity Controls */}
@@ -1488,7 +1494,7 @@ const ALLproducts = () => {
                     </p>
                   )}
                   <p className="text-xs text-green-600 mt-1">
-                    Real-time {selectedCurrency} rate
+                    Real-time {selectedCurrency} rate applied
                   </p>
                 </div>
               </div>
@@ -1649,13 +1655,11 @@ const ALLproducts = () => {
                   </p>
                   <div className="bg-red-50 p-2 rounded">
                     <p className="text-lg font-bold text-green-600">
-                      {formatCurrency(selectedProduct.price)}
-                    </p>
-                    <p className="text-sm text-gray-600">
                       ₹ {selectedProduct.price} (INR)
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      Real-time {selectedCurrency} conversion
+                    <p className="text-sm text-blue-600">
+                      {formatCurrency(selectedProduct.price)} (
+                      {selectedCurrency})
                     </p>
                   </div>
                 </div>
@@ -1665,7 +1669,7 @@ const ALLproducts = () => {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
-                    addToCartWithQuantity(selectedProduct, 1);
+                    addToCart(selectedProduct);
                     closeProductDetails();
                   }}
                   className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors font-semibold"
